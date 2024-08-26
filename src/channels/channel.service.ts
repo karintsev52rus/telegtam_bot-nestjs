@@ -1,14 +1,14 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { Channel } from "./channel.model";
 import { ChannelDTO } from "./channel.dto";
 import { InjectModel } from "@nestjs/sequelize";
-import { ChatService } from "src/chats/chat.service";
+import { CacheService } from "src/cache/cache.service";
 
 @Injectable()
 export class ChannelService {
   constructor(
-    @InjectModel(Channel) public channelModel: typeof Channel,
-    public chatService: ChatService
+    @InjectModel(Channel) private readonly channelModel: typeof Channel,
+    @Inject(CacheService) private readonly cacheService: CacheService
   ) {}
 
   async findAll(): Promise<Channel[]> {
@@ -17,7 +17,14 @@ export class ChannelService {
 
   async addOne(channelDTO: ChannelDTO): Promise<Channel> {
     const { channelId, title, username } = channelDTO;
-    return this.channelModel.create({
+    const isExists = await this.channelModel.findOne({ where: { channelId } });
+    if (isExists) {
+      console.log("Канал уже есть в базе");
+      return;
+    }
+
+    this.cacheService.cleanData("channelIds");
+    this.channelModel.create({
       channelId,
       title,
       username,
@@ -25,12 +32,22 @@ export class ChannelService {
   }
 
   async getChannelIds(): Promise<number[]> {
-    const allChannels = await this.findAll();
-    if (allChannels.length) {
-      const channelIds = allChannels.map((chat) => {
-        return chat.channelId;
-      });
-      return channelIds;
-    } else return [];
+    let channelIds = await this.cacheService.getData<number[]>("channelIds");
+
+    if (!channelIds) {
+      const allChannels = await this.findAll();
+
+      if (allChannels.length) {
+        channelIds = allChannels.map((channel) => {
+          return channel.channelId;
+        });
+        await this.cacheService.saveData("channelIds", channelIds);
+        return channelIds;
+      } else {
+        channelIds = [];
+      }
+    }
+
+    return channelIds;
   }
 }

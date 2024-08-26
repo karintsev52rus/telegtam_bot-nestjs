@@ -6,11 +6,15 @@ import { Channel } from "./channels/channel.model";
 import { ChannelModule } from "./channels/channel.module";
 import { Chat } from "./chats/chat.model";
 import { ChatModule } from "./chats/chats.module";
+import { CacheModule } from "./cache/cache.module";
 
 @Module({
   imports: [
     TelegramBotModule,
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ".env" }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `.${process.env.ENV}.env`,
+    }),
     SequelizeModule.forRoot({
       dialect: "postgres",
       database: process.env.POSTGRES_DB,
@@ -23,6 +27,7 @@ import { ChatModule } from "./chats/chats.module";
       autoLoadModels: true,
       sync: { alter: true },
     }),
+    CacheModule,
     ChannelModule,
     ChatModule,
   ],

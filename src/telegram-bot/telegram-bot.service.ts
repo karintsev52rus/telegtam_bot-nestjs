@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import * as TelegramBot from "node-telegram-bot-api";
+import TelegramBot from "node-telegram-bot-api";
 import { commands } from "./commands";
 import { getSigned32BitNumber } from "../utils/requestId";
 import { ChannelService } from "src/channels/channel.service";
@@ -26,7 +26,7 @@ export class TelegramBotService {
 
   constructor(
     private readonly channelService: ChannelService,
-    protected readonly chatService: ChatService,
+    private readonly chatService: ChatService,
     private configService: ConfigService
   ) {
     this.bot = new TelegramBot(
@@ -234,16 +234,14 @@ export class TelegramBotService {
         return;
       }
 
-      const chat = await this.chatService.chatModel.findOne({
-        where: { userId: id },
-      });
+      const chat = await this.chatService.findChat(id);
       if (!chat) {
         console.log("!chat");
         return;
       }
 
       if (hasPassedTwoDays(chat.date)) {
-        await this.chatService.chatModel.destroy({ where: { userId: id } });
+        await this.chatService.deleteChat(id);
         console.log("hasPassedTwoDays");
         return;
       }
@@ -268,7 +266,7 @@ export class TelegramBotService {
           remove_keyboard: true,
         })
       );
-      await this.chatService.chatModel.destroy({ where: { userId: id } });
+      await this.chatService.deleteChat(id);
     } catch (error) {
       console.log();
     }

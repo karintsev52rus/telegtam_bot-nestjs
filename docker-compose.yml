@@ -1,0 +1,44 @@
+
+version: '3.8'
+services:
+  
+  app:
+    container_name: nest_app
+    build:
+      context: .
+      dockerfile: Dockerfile.${ENV}
+    env_file:
+      - .${ENV}.env
+      
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - '4000:4000'
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  postgres:
+    container_name: postgres
+    image: postgres:12
+    env_file:
+      - .${ENV}.env
+    environment:
+      PG_DATA: /var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:latest
+    command: redis-server
+    ports:
+      - 6379:6379
+    
+volumes:
+  pgdata:
