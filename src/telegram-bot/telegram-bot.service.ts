@@ -179,22 +179,25 @@ export class TelegramBotService {
     try {
       const channelsInfo: Chat[] = [];
       const botUsername = this.configService.get("TELEGRAM_BOT_USERNAME");
-
       if (channelIds.length) {
         for (const id of channelIds) {
-          const chatAdmins = await this.bot.getChatAdministrators(id);
-          const chatAdminsUsernames = chatAdmins.map((admin) => {
-            return admin.user.username;
-          });
-          if (chatAdminsUsernames.includes(botUsername)) {
-            const channelInfo = await this.bot.getChat(id);
-            channelsInfo.push(channelInfo);
+          try {
+            const chatAdmins = await this.bot.getChatAdministrators(id);
+            const chatAdminsUsernames = chatAdmins.map((admin) => {
+              return admin.user.username;
+            });
+            if (chatAdminsUsernames.includes(botUsername)) {
+              const channelInfo = await this.bot.getChat(id);
+              channelsInfo.push(channelInfo);
+            }
+          } catch (error) {
+            continue;
           }
         }
       }
       return channelsInfo;
     } catch (error) {
-      console.log(error);
+      console.log(`getBotAdminChannels error`);
     }
   };
 
@@ -202,7 +205,6 @@ export class TelegramBotService {
     try {
       const channelIds = await this.channelService.getChannelIds();
       const channels = await this.getBotAdminChannels(channelIds);
-
       if (!channels.length || !channels.length) {
         return this.bot.sendMessage(
           msg.chat.id,
@@ -218,7 +220,7 @@ export class TelegramBotService {
         });
       });
     } catch (error) {
-      console.log(error);
+      console.log(`getBotChannelsList error`);
     }
   };
 
